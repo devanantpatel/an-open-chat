@@ -597,91 +597,105 @@
         })
         .subscribe();
     }
-          // Global User Search (Fail-Safe & Direct)
+
+
+    // Global User Search (Debounced & Unique Filter)
+    let searchDebounceTimer = null;
+
     async function searchUsers(query) {
-      const client = getClient();
-      const userList = document.getElementById('userList');
+      clearTimeout(searchDebounceTimer);
       const q = query ? query.trim().toLowerCase() : '';
 
-      if (!q || !client || !currentUser) {
+      if (!q) {
         loadConversations();
         return;
       }
-      setLiveStatus(true);
 
-      try {
-        const { data: users, error } = await client
-          .from('profiles')
-          .select('id, username, avatar_url')
-          .neq('id', currentUser.id)
-          .ilike('username', `%${q}%`);
+      searchDebounceTimer = setTimeout(async () => {
+        const client = getClient();
+        const userList = document.getElementById('userList');
+        if (!client || !currentUser) return;
 
-        if (error) {
-          console.error("Search error:", error);
-          userList.innerHTML = `<div class="list-empty">Search error: ${error.message}</div>`;
-          setLiveStatus(false);
-          return;
-        }
+        setLiveStatus(true);
 
-        userList.innerHTML = '';
-        setLiveStatus(false);
-
-        if (!users || users.length === 0) {
-          userList.innerHTML = `<div class="list-empty">No users found matching "${q}"</div>`;
-          return;
-        }
-
-        let sentReqs = [];
-        let recvReqs = [];
         try {
-          const res1 = await client.from('chat_requests').select('*').eq('sender_id', currentUser.id);
-          const res2 = await client.from('chat_requests').select('*').eq('receiver_id', currentUser.id);
-          sentReqs = res1.data || [];
-          recvReqs = res2.data || [];
-        } catch (e) {
-          console.warn("Requests fetch fallback:", e);
-        }
+          const { data: users, error } = await client
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .neq('id', currentUser.id)
+            .ilike('username', `%${q}%`);
 
-        users.forEach(user => {
-          const div = document.createElement('div');
-          div.className = "list-item";
-          let avatarInner = user.avatar_url 
-            ? `<img src="${user.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` 
-            : (user.username || 'U')[0].toUpperCase();
-
-          const alreadyFriend = connectedContacts.some(c => c.id === user.id);
-          const reqSent = sentReqs.find(r => r.receiver_id === user.id && r.status === 'pending');
-          const reqReceived = recvReqs.find(r => r.sender_id === user.id && r.status === 'pending');
-
-          let actionBtnHtml = '';
-          if (alreadyFriend) {
-            actionBtnHtml = `<span style="font-size:11px;color:#00a884;font-weight:600;">Connected</span>`;
-            div.onclick = () => startChatWith(user);
-          } else if (reqSent) {
-            actionBtnHtml = `<button class="btn-req-pending" disabled>Pending</button>`;
-          } else if (reqReceived) {
-            actionBtnHtml = `<button class="btn-req-accept" onclick="respondRequest('${reqReceived.id}', '${user.id}', true)">Accept</button>`;
-          } else {
-            actionBtnHtml = `<button class="btn-send-req" onclick="sendChatRequest('${user.id}', this)">+ Request</button>`;
+          if (error) {
+            userList.innerHTML = `<div class="list-empty">Search error: ${error.message}</div>`;
+            setLiveStatus(false);
+            return;
           }
 
-          div.innerHTML = `
-            <div class="list-item-left">
-              <div class="avatar">${avatarInner}</div>
-              <div class="item-details">
-                <p class="item-title">${user.username}</p>
-                <p class="item-msg">Tap to add friend</p>
+          userList.innerHTML = '';
+          setLiveStatus(false);
+
+          if (!users || users.length === 0) {
+            userList.innerHTML = `<div class="list-empty">No users found matching "${q}"</div>`;
+            return;
+          }
+
+          // Duplicate users filter
+          const seenIds = new Set();
+          const uniqueUsers = users.filter(u => {
+            if (seenIds.has(u.id)) return false;
+            seenIds.add(u.id);
+            return true;
+          });
+
+          let sentReqs = [];
+          let recvReqs = [];
+          try {
+            const res1 = await client.from('chat_requests').select('*').eq('sender_id', currentUser.id);
+            const res2 = await client.from('chat_requests').select('*').eq('receiver_id', currentUser.id);
+            sentReqs = res1.data || [];
+            recvReqs = res2.data || [];
+          } catch (e) {}
+
+          uniqueUsers.forEach(user => {
+            const div = document.createElement('div');
+            div.className = "list-item";
+            let avatarInner = user.avatar_url 
+              ? `<img src="${user.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` 
+              : (user.username || 'U')[0].toUpperCase();
+
+            const alreadyFriend = connectedContacts.some(c => c.id === user.id);
+            const reqSent = sentReqs.find(r => r.receiver_id === user.id && r.status === 'pending');
+            const reqReceived = recvReqs.find(r => r.sender_id === user.id && r.status === 'pending');
+
+            let actionBtnHtml = '';
+            if (alreadyFriend) {
+              actionBtnHtml = `<span style="font-size:11px;color:#00a884;font-weight:600;">Connected</span>`;
+              div.onclick = () => startChatWith(user);
+            } else if (reqSent) {
+              actionBtnHtml = `<button class="btn-req-pending" disabled>Pending</button>`;
+            } else if (reqReceived) {
+              actionBtnHtml = `<button class="btn-req-accept" onclick="respondRequest('${reqReceived.id}', '${user.id}', true)">Accept</button>`;
+            } else {
+              actionBtnHtml = `<button class="btn-send-req" onclick="sendChatRequest('${user.id}', this)">+ Request</button>`;
+            }
+
+            div.innerHTML = `
+              <div class="list-item-left">
+                <div class="avatar">${avatarInner}</div>
+                <div class="item-details">
+                  <p class="item-title">${user.username}</p>
+                  <p class="item-msg">Tap to add friend</p>
+                </div>
               </div>
-            </div>
-            <div>${actionBtnHtml}</div>
-          `;
-          userList.appendChild(div);
-        });
-      } catch (err) {
-        console.error("Search query failed:", err);
-        userList.innerHTML = '<div class="list-empty">Search query failed.</div>';
-        setLiveStatus(false);
-      }
+              <div>${actionBtnHtml}</div>
+            `;
+            userList.appendChild(div);
+          });
+        } catch (err) {
+          userList.innerHTML = '<div class="list-empty">Search query failed.</div>';
+          setLiveStatus(false);
+        }
+      }, 250);
     }
 
     async function loadConversations() {
