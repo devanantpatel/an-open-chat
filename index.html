@@ -13,7 +13,7 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 10px; }
 
-    /* AUTH SCREEN (an open chat branding) */
+    /* AUTH SCREEN */
     #authScreen { position: fixed; inset: 0; z-index: 50; background: rgba(10, 16, 20, 0.92); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; padding: 16px; }
     .auth-card { background: rgba(31, 44, 52, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 28px 24px; width: 100%; max-width: 360px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
     .brand-icon { width: 56px; height: 56px; background: #00a884; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: #111b21; font-size: 26px; margin: 0 auto 12px; font-weight: bold; box-shadow: 0 8px 20px rgba(0, 168, 132, 0.35); }
@@ -510,7 +510,7 @@
       if (!client || !currentUser) return;
 
       const { data } = await client.from('chat_requests')
-        .select('id, sender_id, profiles!chat_requests_sender_id_fkey(id, username, avatar_url)')
+        .select('id, sender_id')
         .eq('receiver_id', currentUser.id)
         .eq('status', 'pending');
 
@@ -526,19 +526,21 @@
       container.style.display = 'block';
       badge.innerText = data.length;
 
-      data.forEach(req => {
-        const sender = req.profiles;
-        const item = document.createElement('div');
-        item.className = 'request-item';
-        item.innerHTML = `
-          <div><span style="font-weight:600;font-size:13px;color:#fff;">${sender.username}</span></div>
-          <div>
-            <button class="btn-req-accept" onclick="respondRequest('${req.id}', '${sender.id}', true)">Accept</button>
-            <button class="btn-req-reject" onclick="respondRequest('${req.id}', '${sender.id}', false)">Decline</button>
-          </div>
-        `;
-        list.appendChild(item);
-      });
+      for (const req of data) {
+        const { data: sender } = await client.from('profiles').select('id, username').eq('id', req.sender_id).maybeSingle();
+        if (sender) {
+          const item = document.createElement('div');
+          item.className = 'request-item';
+          item.innerHTML = `
+            <div><span style="font-weight:600;font-size:13px;color:#fff;">${sender.username}</span></div>
+            <div>
+              <button class="btn-req-accept" onclick="respondRequest('${req.id}', '${sender.id}', true)">Accept</button>
+              <button class="btn-req-reject" onclick="respondRequest('${req.id}', '${sender.id}', false)">Decline</button>
+            </div>
+          `;
+          list.appendChild(item);
+        }
+      }
     }
 
     async function sendChatRequest(targetUserId, btnElement) {
@@ -595,7 +597,7 @@
         })
         .subscribe();
     }
-          // Global User Search
+          // Global User Search (Fail-Safe & Direct)
     async function searchUsers(query) {
       const client = getClient();
       const userList = document.getElementById('userList');
@@ -606,16 +608,16 @@
         return;
       }
       setLiveStatus(true);
-      userList.innerHTML = '<div class="list-empty">Searching users...</div>';
 
       try {
         const { data: users, error } = await client
           .from('profiles')
-          .select('id, username, avatar_url, last_seen')
+          .select('id, username, avatar_url')
           .neq('id', currentUser.id)
           .ilike('username', `%${q}%`);
 
         if (error) {
+          console.error("Search error:", error);
           userList.innerHTML = `<div class="list-empty">Search error: ${error.message}</div>`;
           setLiveStatus(false);
           return;
@@ -629,8 +631,16 @@
           return;
         }
 
-        const { data: sentReqs } = await client.from('chat_requests').select('*').eq('sender_id', currentUser.id);
-        const { data: recvReqs } = await client.from('chat_requests').select('*').eq('receiver_id', currentUser.id);
+        let sentReqs = [];
+        let recvReqs = [];
+        try {
+          const res1 = await client.from('chat_requests').select('*').eq('sender_id', currentUser.id);
+          const res2 = await client.from('chat_requests').select('*').eq('receiver_id', currentUser.id);
+          sentReqs = res1.data || [];
+          recvReqs = res2.data || [];
+        } catch (e) {
+          console.warn("Requests fetch fallback:", e);
+        }
 
         users.forEach(user => {
           const div = document.createElement('div');
@@ -640,15 +650,15 @@
             : (user.username || 'U')[0].toUpperCase();
 
           const alreadyFriend = connectedContacts.some(c => c.id === user.id);
-          const reqSent = sentReqs && sentReqs.find(r => r.receiver_id === user.id && r.status === 'pending');
-          const reqReceived = recvReqs && recvReqs.find(r => r.sender_id === user.id && r.status === 'pending');
+          const reqSent = sentReqs.find(r => r.receiver_id === user.id && r.status === 'pending');
+          const reqReceived = recvReqs.find(r => r.sender_id === user.id && r.status === 'pending');
 
           let actionBtnHtml = '';
           if (alreadyFriend) {
             actionBtnHtml = `<span style="font-size:11px;color:#00a884;font-weight:600;">Connected</span>`;
             div.onclick = () => startChatWith(user);
           } else if (reqSent) {
-            actionBtnHtml = `<button class="btn-req-pending" disabled>Pending...</button>`;
+            actionBtnHtml = `<button class="btn-req-pending" disabled>Pending</button>`;
           } else if (reqReceived) {
             actionBtnHtml = `<button class="btn-req-accept" onclick="respondRequest('${reqReceived.id}', '${user.id}', true)">Accept</button>`;
           } else {
@@ -668,6 +678,7 @@
           userList.appendChild(div);
         });
       } catch (err) {
+        console.error("Search query failed:", err);
         userList.innerHTML = '<div class="list-empty">Search query failed.</div>';
         setLiveStatus(false);
       }
@@ -880,7 +891,6 @@
         .subscribe();
     }
 
-    // Unified Profile Management
     function openProfileModal() {
       document.getElementById('profileModal').classList.add('active');
       document.getElementById('profileStatusBox').style.display = 'none';
