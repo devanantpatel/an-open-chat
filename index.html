@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>An Open Chat</title>
+  <title>an-openchat</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-[#111b21] text-[#e9edef] h-screen w-screen overflow-hidden flex font-sans">
+<body class="bg-[#111b21] text-[#e9edef] h-screen w-screen overflow-hidden flex font-sans select-none">
 
   <!-- CONFIGURATION -->
   <script>
@@ -17,31 +17,38 @@
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   </script>
 
-  <!-- AUTH SCREEN (Login / Signup) -->
+  <!-- AUTH SCREEN -->
   <div id="authScreen" class="fixed inset-0 z-50 bg-[#111b21] flex items-center justify-center p-4">
-    <div class="bg-[#202c33] p-8 rounded-xl shadow-2xl w-full max-w-sm border border-[#313d45]">
-      <div class="flex justify-center mb-4 text-[#00a884] text-5xl">
-        <i class="fa-brands fa-whatsapp"></i>
-      </div>
-      <h2 id="authTitle" class="text-xl font-bold text-center mb-6">Log in to An Open Chat</h2>
+    <div class="bg-[#202c33] p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-[#313d45]">
       
+      <!-- Custom App Branding -->
+      <div class="flex flex-col items-center mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-[#00a884] flex items-center justify-center text-black shadow-lg mb-3">
+          <i class="fa-solid fa-comments text-2xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-[#00a884]">an-openchat</h1>
+        <p id="authSubtitle" class="text-xs text-gray-400 mt-1">Connect instantly with username</p>
+      </div>
+
       <div class="space-y-4">
         <div>
-          <label class="text-xs text-gray-400 block mb-1">Username</label>
-          <input id="authUsername" type="text" placeholder="e.g. rahul123" class="w-full bg-[#111b21] border border-[#313d45] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#00a884]">
+          <label class="text-xs text-gray-400 block mb-1">Username (min 5 letters)</label>
+          <input id="authUsername" type="text" placeholder="e.g. rahul12" class="w-full bg-[#111b21] border border-[#313d45] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#00a884] text-white">
         </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Password</label>
-          <input id="authPassword" type="password" placeholder="Min 6 characters" class="w-full bg-[#111b21] border border-[#313d45] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#00a884]">
-        </div>
-        
-        <p id="authError" class="text-red-400 text-xs text-center hidden"></p>
 
-        <button id="authBtn" onclick="handleAuth()" class="w-full bg-[#00a884] hover:bg-[#02906f] text-black font-semibold py-2 rounded text-sm transition">
-          Log In
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Password (min 6 characters)</label>
+          <input id="authPassword" type="password" placeholder="••••••••" class="w-full bg-[#111b21] border border-[#313d45] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#00a884] text-white">
+        </div>
+
+        <!-- Status & Error Box -->
+        <div id="authStatusBox" class="text-xs text-center p-2 rounded hidden"></div>
+
+        <button id="authBtn" onclick="handleAuth()" class="w-full bg-[#00a884] hover:bg-[#02906f] text-black font-semibold py-2.5 rounded-lg text-sm transition duration-150 flex items-center justify-center space-x-2">
+          <span id="authBtnText">Log In</span>
         </button>
 
-        <p class="text-xs text-center text-gray-400">
+        <p class="text-xs text-center text-gray-400 pt-2">
           <span id="authToggleText">Don't have an account?</span> 
           <a href="javascript:void(0)" onclick="toggleAuthMode()" id="authToggleBtn" class="text-[#00a884] font-semibold underline ml-1">Sign Up</a>
         </p>
@@ -49,7 +56,7 @@
     </div>
   </div>
 
-  <!-- MAIN CHAT APP -->
+  <!-- MAIN CHAT INTERFACE -->
   <div id="appScreen" class="flex w-full h-full relative">
     
     <!-- LEFT SIDEBAR -->
@@ -60,74 +67,73 @@
         <div class="flex items-center space-x-3">
           <div class="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center font-bold text-black" id="myAvatarText">U</div>
           <div>
-            <p class="font-semibold text-sm" id="myUsernameDisplay">User</p>
-            <p class="text-[11px] text-gray-400">Online</p>
+            <p class="font-semibold text-sm tracking-wide" id="myUsernameDisplay">User</p>
+            <p class="text-[11px] text-[#00a884] flex items-center">
+              <span class="w-2 h-2 rounded-full bg-[#00a884] inline-block mr-1.5 animate-pulse"></span>an-openchat active
+            </p>
           </div>
         </div>
-        <button onclick="logout()" title="Logout" class="text-gray-400 hover:text-red-400">
+        <button onclick="logout()" title="Logout" class="text-gray-400 hover:text-red-400 p-2">
           <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
         </button>
       </div>
 
-      <!-- Search Contacts / Users -->
-      <div class="p-2 bg-[#111b21]">
-        <div class="bg-[#202c33] rounded-lg flex items-center px-3 py-1.5 space-x-3">
+      <!-- Search Bar -->
+      <div class="p-2.5 bg-[#111b21]">
+        <div class="bg-[#202c33] rounded-lg flex items-center px-3 py-2 space-x-3">
           <i class="fa-solid fa-magnifying-glass text-gray-400 text-sm"></i>
           <input id="userSearchInput" onkeyup="searchUsers(this.value)" type="text" placeholder="Find user by username..." class="bg-transparent text-sm w-full focus:outline-none placeholder-gray-500">
         </div>
       </div>
 
-      <!-- Contact / Search Results List -->
+      <!-- Conversations / Results -->
       <div id="userList" class="flex-1 overflow-y-auto divide-y divide-[#202c33]">
-        <div class="p-4 text-center text-gray-500 text-xs">Search for a username above to start chatting</div>
+        <div class="p-6 text-center text-gray-500 text-xs">Type a username above to start chatting</div>
       </div>
     </div>
 
-    <!-- RIGHT CHAT WINDOW -->
+    <!-- RIGHT CHAT AREA -->
     <div id="chatArea" class="hidden md:flex flex-1 flex-col h-full bg-[#0b141a] absolute md:relative inset-0 z-20">
       
-      <!-- Chat Header -->
+      <!-- Top Bar -->
       <div id="chatHeader" class="bg-[#202c33] px-4 py-2.5 flex items-center justify-between border-b border-[#222e35]">
         <div class="flex items-center space-x-3">
-          <button onclick="closeChatMobile()" class="md:hidden text-gray-400 hover:text-white mr-1">
-            <i class="fa-solid fa-arrow-left text-lg"></i>
+          <button onclick="closeChatMobile()" class="md:hidden text-gray-400 hover:text-white mr-1 text-lg">
+            <i class="fa-solid fa-arrow-left"></i>
           </button>
           <div class="w-9 h-9 rounded-full bg-[#6a7175] flex items-center justify-center font-bold text-white text-sm" id="currentChatAvatar">?</div>
           <div>
-            <h3 class="text-sm font-semibold" id="currentChatUser">Select a contact</h3>
-            <p class="text-[11px] text-gray-400" id="currentChatStatus"></p>
+            <h3 class="text-sm font-semibold" id="currentChatUser">Select user</h3>
+            <p class="text-[11px] text-gray-400">Direct Chat</p>
           </div>
         </div>
       </div>
 
-      <!-- Messages Stream -->
+      <!-- Chat Stream -->
       <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-2 bg-[radial-gradient(#1c272f_1px,transparent_1px)] [background-size:16px_16px]">
         <div class="h-full flex items-center justify-center text-gray-500 text-sm">
-          Select or search a user to view conversation
+          Select or search a user to start conversation
         </div>
       </div>
 
-      <!-- Input Toolbar -->
-      <div class="bg-[#202c33] px-4 py-2 flex items-center space-x-3">
-        <!-- Attachment button -->
-        <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-[#00a884]">
+      <!-- Bottom Chat Toolbar -->
+      <div class="bg-[#202c33] px-3 py-2 flex items-center space-x-2">
+        <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-[#00a884] p-2">
           <i class="fa-solid fa-paperclip text-lg"></i>
           <input id="fileInput" type="file" class="hidden" onchange="uploadAttachment(this)">
         </label>
         
-        <!-- Text Input -->
-        <input id="messageInput" onkeypress="if(event.key === 'Enter') sendMessage()" type="text" placeholder="Type a message or paste a link..." class="flex-1 bg-[#2a3942] rounded-lg px-4 py-2 text-sm focus:outline-none placeholder-gray-400">
+        <input id="messageInput" onkeypress="if(event.key === 'Enter') sendMessage()" type="text" placeholder="Type a message or paste a link..." class="flex-1 bg-[#2a3942] rounded-lg px-4 py-2 text-sm focus:outline-none placeholder-gray-400 text-white">
 
-        <!-- Send Button -->
-        <button onclick="sendMessage()" class="text-[#00a884] hover:text-[#02906f]">
-          <i class="fa-solid fa-paper-plane text-lg"></i>
+        <button onclick="sendMessage()" class="bg-[#00a884] hover:bg-[#02906f] text-black w-9 h-9 rounded-full flex items-center justify-center">
+          <i class="fa-solid fa-paper-plane text-sm"></i>
         </button>
       </div>
 
     </div>
   </div>
 
-  <!-- SCRIPT LOGIC -->
+  <!-- JAVASCRIPT ENGINE -->
   <script>
     let isSignup = false;
     let currentUser = null;
@@ -135,45 +141,75 @@
     let activeConversationId = null;
     let realtimeSubscription = null;
 
+    function showStatus(text, isError = false) {
+      const box = document.getElementById('authStatusBox');
+      box.innerText = text;
+      box.className = `text-xs text-center p-2 rounded block ${isError ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'}`;
+    }
+
     function toggleAuthMode() {
       isSignup = !isSignup;
-      document.getElementById('authTitle').innerText = isSignup ? "Create An Open Chat Account" : "Log in to An Open Chat";
-      document.getElementById('authBtn').innerText = isSignup ? "Sign Up" : "Log In";
+      document.getElementById('authSubtitle').innerText = isSignup ? "Create a new an-openchat account" : "Connect instantly with username";
+      document.getElementById('authBtnText').innerText = isSignup ? "Sign Up" : "Log In";
       document.getElementById('authToggleText').innerText = isSignup ? "Already have an account?" : "Don't have an account?";
       document.getElementById('authToggleBtn').innerText = isSignup ? "Log In" : "Sign Up";
+      document.getElementById('authStatusBox').classList.add('hidden');
     }
 
     async function handleAuth() {
-      const username = document.getElementById('authUsername').value.trim().toLowerCase();
-      const password = document.getElementById('authPassword').value;
-      const errorEl = document.getElementById('authError');
-      errorEl.classList.add('hidden');
+      const usernameInput = document.getElementById('authUsername');
+      const passwordInput = document.getElementById('authPassword');
+      const btn = document.getElementById('authBtn');
+      const btnText = document.getElementById('authBtnText');
 
-      if (!username || password.length < 6) {
-        errorEl.innerText = "Valid username & 6+ digit password required.";
-        errorEl.classList.remove('hidden');
+      const username = usernameInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+
+      // Validation
+      if (!username || username.length < 5) {
+        showStatus("Username must be at least 5 characters long.", true);
+        return;
+      }
+      if (!password || password.length < 6) {
+        showStatus("Password must be at least 6 characters long.", true);
         return;
       }
 
+      btn.disabled = true;
+      btnText.innerText = isSignup ? "Creating account..." : "Logging in...";
+      showStatus(isSignup ? "Registering user..." : "Verifying credentials...", false);
+
       const email = `${username}@openchat.local`;
 
-      if (isSignup) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) {
-          errorEl.innerText = error.message;
-          errorEl.classList.remove('hidden');
-          return;
+      try {
+        if (isSignup) {
+          // Check username availability in profiles
+          const { data: existingUser } = await supabase.from('profiles').select('username').eq('username', username).single();
+          if (existingUser) {
+            showStatus("This username is already taken. Try another.", true);
+            btn.disabled = false;
+            btnText.innerText = "Sign Up";
+            return;
+          }
+
+          const { data, error } = await supabase.auth.signUp({ email, password });
+          if (error) throw error;
+          
+          await supabase.from('profiles').insert([{ id: data.user.id, username }]);
+          showStatus("Account created! Opening app...", false);
+          initUser(data.user, username);
+        } else {
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          
+          showStatus("Login successful! Opening...", false);
+          initUser(data.user, username);
         }
-        await supabase.from('profiles').insert([{ id: data.user.id, username }]);
-        initUser(data.user, username);
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          errorEl.innerText = error.message;
-          errorEl.classList.remove('hidden');
-          return;
-        }
-        initUser(data.user, username);
+      } catch (err) {
+        showStatus(err.message || "An unexpected error occurred.", true);
+      } finally {
+        btn.disabled = false;
+        btnText.innerText = isSignup ? "Sign Up" : "Log In";
       }
     }
 
@@ -194,7 +230,7 @@
       const userList = document.getElementById('userList');
       userList.innerHTML = '';
       if (!data || data.length === 0) {
-        userList.innerHTML = '<div class="p-4 text-center text-gray-500 text-xs">No user found</div>';
+        userList.innerHTML = '<div class="p-4 text-center text-gray-500 text-xs">No users found</div>';
         return;
       }
       data.forEach(user => {
@@ -202,7 +238,7 @@
         div.className = "p-3 hover:bg-[#202c33] cursor-pointer flex items-center space-x-3 transition";
         div.innerHTML = `
           <div class="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center font-bold text-black">${user.username[0].toUpperCase()}</div>
-          <div><p class="font-medium text-sm">${user.username}</p></div>
+          <div><p class="font-medium text-sm text-white">${user.username}</p></div>
         `;
         div.onclick = () => startChatWith(user);
         userList.appendChild(div);
@@ -219,7 +255,7 @@
       userList.innerHTML = '';
 
       if (!data || data.length === 0) {
-        userList.innerHTML = '<div class="p-4 text-center text-gray-500 text-xs">No active chats. Search username above.</div>';
+        userList.innerHTML = '<div class="p-6 text-center text-gray-500 text-xs">No active chats. Search a username above.</div>';
         return;
       }
 
@@ -231,7 +267,7 @@
           div.className = "p-3 hover:bg-[#202c33] cursor-pointer flex items-center space-x-3 transition";
           div.innerHTML = `
             <div class="w-10 h-10 rounded-full bg-[#6a7175] flex items-center justify-center font-bold text-white text-sm">${targetProfile.username[0].toUpperCase()}</div>
-            <div class="flex-1"><p class="font-medium text-sm">${targetProfile.username}</p></div>
+            <div class="flex-1"><p class="font-medium text-sm text-white">${targetProfile.username}</p></div>
           `;
           div.onclick = () => startChatWith(targetProfile, conv.id);
           userList.appendChild(div);
@@ -243,7 +279,6 @@
       activeChatUser = targetUser;
       document.getElementById('currentChatUser').innerText = targetUser.username;
       document.getElementById('currentChatAvatar').innerText = targetUser.username[0].toUpperCase();
-      
       document.getElementById('chatArea').classList.remove('hidden');
 
       if (!existingConvId) {
@@ -288,9 +323,9 @@
 
       let contentHtml = '';
       if (msg.media_type === 'image') {
-        contentHtml = `<img src="${msg.media_url}" class="max-w-[240px] max-h-[240px] rounded mb-1 object-cover cursor-pointer" onclick="window.open('${msg.media_url}')">`;
+        contentHtml = `<img src="${msg.media_url}" class="max-w-[240px] max-h-[240px] rounded-lg mb-1 object-cover cursor-pointer" onclick="window.open('${msg.media_url}')">`;
       } else if (msg.media_type === 'document') {
-        contentHtml = `<a href="${msg.media_url}" target="_blank" class="flex items-center space-x-2 text-xs text-white underline mb-1 bg-black/20 p-2 rounded"><i class="fa-solid fa-file"></i><span>Download Document</span></a>`;
+        contentHtml = `<a href="${msg.media_url}" target="_blank" class="flex items-center space-x-2 text-xs text-white underline mb-1 bg-black/20 p-2 rounded"><i class="fa-solid fa-file"></i><span>Attachment File</span></a>`;
       }
 
       if (msg.content) {
@@ -367,5 +402,4 @@
     }
   </script>
 </body>
-  </html>
-  
+</html>
