@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>An Open Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-[#111b21] text-[#e9edef] h-screen w-screen overflow-hidden flex font-sans">
+
+  <!-- CONFIGURATION -->
+  <script>
+    const SUPABASE_URL = "https://clrtbmazkafteaogfhms.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_sD3mzd_uXzHjRcMC9EUlkg_xCHxL-BV";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  </script>
+
+  <!-- AUTH SCREEN (Login / Signup) -->
+  <div id="authScreen" class="fixed inset-0 z-50 bg-[#111b21] flex items-center justify-center p-4">
+    <div class="bg-[#202c33] p-8 rounded-xl shadow-2xl w-full max-w-sm border border-[#313d45]">
+      <div class="flex justify-center mb-4 text-[#00a884] text-5xl">
+        <i class="fa-brands fa-whatsapp"></i>
+      </div>
+      <h2 id="authTitle" class="text-xl font-bold text-center mb-6">Log in to An Open Chat</h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Username</label>
+          <input id="authUsername" type="text" placeholder="e.g. rahul123" class="w-full bg-[#111b21] border border-[#313d45] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#00a884]">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Password</label>
+          <input id="authPassword" type="password" placeholder="Min 6 characters" class="w-full bg-[#111b21] border border-[#313d45] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#00a884]">
+        </div>
+        
+        <p id="authError" class="text-red-400 text-xs text-center hidden"></p>
+
+        <button id="authBtn" onclick="handleAuth()" class="w-full bg-[#00a884] hover:bg-[#02906f] text-black font-semibold py-2 rounded text-sm transition">
+          Log In
+        </button>
+
+        <p class="text-xs text-center text-gray-400">
+          <span id="authToggleText">Don't have an account?</span> 
+          <a href="javascript:void(0)" onclick="toggleAuthMode()" id="authToggleBtn" class="text-[#00a884] font-semibold underline ml-1">Sign Up</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CHAT APP -->
+  <div id="appScreen" class="flex w-full h-full relative">
+    
+    <!-- LEFT SIDEBAR -->
+    <div id="sidebar" class="w-full md:w-[380px] bg-[#111b21] border-r border-[#222e35] flex flex-col h-full flex-shrink-0 z-10">
+      
+      <!-- User Profile Header -->
+      <div class="bg-[#202c33] px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center font-bold text-black" id="myAvatarText">U</div>
+          <div>
+            <p class="font-semibold text-sm" id="myUsernameDisplay">User</p>
+            <p class="text-[11px] text-gray-400">Online</p>
+          </div>
+        </div>
+        <button onclick="logout()" title="Logout" class="text-gray-400 hover:text-red-400">
+          <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Search Contacts / Users -->
+      <div class="p-2 bg-[#111b21]">
+        <div class="bg-[#202c33] rounded-lg flex items-center px-3 py-1.5 space-x-3">
+          <i class="fa-solid fa-magnifying-glass text-gray-400 text-sm"></i>
+          <input id="userSearchInput" onkeyup="searchUsers(this.value)" type="text" placeholder="Find user by username..." class="bg-transparent text-sm w-full focus:outline-none placeholder-gray-500">
+        </div>
+      </div>
+
+      <!-- Contact / Search Results List -->
+      <div id="userList" class="flex-1 overflow-y-auto divide-y divide-[#202c33]">
+        <div class="p-4 text-center text-gray-500 text-xs">Search for a username above to start chatting</div>
+      </div>
+    </div>
+
+    <!-- RIGHT CHAT WINDOW -->
+    <div id="chatArea" class="hidden md:flex flex-1 flex-col h-full bg-[#0b141a] absolute md:relative inset-0 z-20">
+      
+      <!-- Chat Header -->
+      <div id="chatHeader" class="bg-[#202c33] px-4 py-2.5 flex items-center justify-between border-b border-[#222e35]">
+        <div class="flex items-center space-x-3">
+          <button onclick="closeChatMobile()" class="md:hidden text-gray-400 hover:text-white mr-1">
+            <i class="fa-solid fa-arrow-left text-lg"></i>
+          </button>
+          <div class="w-9 h-9 rounded-full bg-[#6a7175] flex items-center justify-center font-bold text-white text-sm" id="currentChatAvatar">?</div>
+          <div>
+            <h3 class="text-sm font-semibold" id="currentChatUser">Select a contact</h3>
+            <p class="text-[11px] text-gray-400" id="currentChatStatus"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages Stream -->
+      <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-2 bg-[radial-gradient(#1c272f_1px,transparent_1px)] [background-size:16px_16px]">
+        <div class="h-full flex items-center justify-center text-gray-500 text-sm">
+          Select or search a user to view conversation
+        </div>
+      </div>
+
+      <!-- Input Toolbar -->
+      <div class="bg-[#202c33] px-4 py-2 flex items-center space-x-3">
+        <!-- Attachment button -->
+        <label for="fileInput" class="cursor-pointer text-gray-400 hover:text-[#00a884]">
+          <i class="fa-solid fa-paperclip text-lg"></i>
+          <input id="fileInput" type="file" class="hidden" onchange="uploadAttachment(this)">
+        </label>
+        
+        <!-- Text Input -->
+        <input id="messageInput" onkeypress="if(event.key === 'Enter') sendMessage()" type="text" placeholder="Type a message or paste a link..." class="flex-1 bg-[#2a3942] rounded-lg px-4 py-2 text-sm focus:outline-none placeholder-gray-400">
+
+        <!-- Send Button -->
+        <button onclick="sendMessage()" class="text-[#00a884] hover:text-[#02906f]">
+          <i class="fa-solid fa-paper-plane text-lg"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    let isSignup = false;
+    let currentUser = null;
+    let activeChatUser = null;
+    let activeConversationId = null;
+    let realtimeSubscription = null;
+
+    function toggleAuthMode() {
+      isSignup = !isSignup;
+      document.getElementById('authTitle').innerText = isSignup ? "Create An Open Chat Account" : "Log in to An Open Chat";
+      document.getElementById('authBtn').innerText = isSignup ? "Sign Up" : "Log In";
+      document.getElementById('authToggleText').innerText = isSignup ? "Already have an account?" : "Don't have an account?";
+      document.getElementById('authToggleBtn').innerText = isSignup ? "Log In" : "Sign Up";
+    }
+
+    async function handleAuth() {
+      const username = document.getElementById('authUsername').value.trim().toLowerCase();
+      const password = document.getElementById('authPassword').value;
+      const errorEl = document.getElementById('authError');
+      errorEl.classList.add('hidden');
+
+      if (!username || password.length < 6) {
+        errorEl.innerText = "Valid username & 6+ digit password required.";
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const email = `${username}@openchat.local`;
+
+      if (isSignup) {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          errorEl.innerText = error.message;
+          errorEl.classList.remove('hidden');
+          return;
+        }
+        await supabase.from('profiles').insert([{ id: data.user.id, username }]);
+        initUser(data.user, username);
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          errorEl.innerText = error.message;
+          errorEl.classList.remove('hidden');
+          return;
+        }
+        initUser(data.user, username);
+      }
+    }
+
+    async function initUser(user, username) {
+      currentUser = { id: user.id, username };
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('myUsernameDisplay').innerText = username;
+      document.getElementById('myAvatarText').innerText = username[0].toUpperCase();
+      loadConversations();
+    }
+
+    async function searchUsers(query) {
+      if (!query.trim()) {
+        loadConversations();
+        return;
+      }
+      const { data } = await supabase.from('profiles').select('id, username').ilike('username', `%${query.trim()}%`).neq('id', currentUser.id);
+      const userList = document.getElementById('userList');
+      userList.innerHTML = '';
+      if (!data || data.length === 0) {
+        userList.innerHTML = '<div class="p-4 text-center text-gray-500 text-xs">No user found</div>';
+        return;
+      }
+      data.forEach(user => {
+        const div = document.createElement('div');
+        div.className = "p-3 hover:bg-[#202c33] cursor-pointer flex items-center space-x-3 transition";
+        div.innerHTML = `
+          <div class="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center font-bold text-black">${user.username[0].toUpperCase()}</div>
+          <div><p class="font-medium text-sm">${user.username}</p></div>
+        `;
+        div.onclick = () => startChatWith(user);
+        userList.appendChild(div);
+      });
+    }
+
+    async function loadConversations() {
+      const { data } = await supabase.from('conversations')
+        .select('id, user1_id, user2_id, updated_at')
+        .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
+        .order('updated_at', { ascending: false });
+
+      const userList = document.getElementById('userList');
+      userList.innerHTML = '';
+
+      if (!data || data.length === 0) {
+        userList.innerHTML = '<div class="p-4 text-center text-gray-500 text-xs">No active chats. Search username above.</div>';
+        return;
+      }
+
+      for (const conv of data) {
+        const targetId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
+        const { data: targetProfile } = await supabase.from('profiles').select('id, username').eq('id', targetId).single();
+        if (targetProfile) {
+          const div = document.createElement('div');
+          div.className = "p-3 hover:bg-[#202c33] cursor-pointer flex items-center space-x-3 transition";
+          div.innerHTML = `
+            <div class="w-10 h-10 rounded-full bg-[#6a7175] flex items-center justify-center font-bold text-white text-sm">${targetProfile.username[0].toUpperCase()}</div>
+            <div class="flex-1"><p class="font-medium text-sm">${targetProfile.username}</p></div>
+          `;
+          div.onclick = () => startChatWith(targetProfile, conv.id);
+          userList.appendChild(div);
+        }
+      }
+    }
+
+    async function startChatWith(targetUser, existingConvId = null) {
+      activeChatUser = targetUser;
+      document.getElementById('currentChatUser').innerText = targetUser.username;
+      document.getElementById('currentChatAvatar').innerText = targetUser.username[0].toUpperCase();
+      
+      document.getElementById('chatArea').classList.remove('hidden');
+
+      if (!existingConvId) {
+        const { data: conv1 } = await supabase.from('conversations').select('id').eq('user1_id', currentUser.id).eq('user2_id', targetUser.id).single();
+        const { data: conv2 } = await supabase.from('conversations').select('id').eq('user1_id', targetUser.id).eq('user2_id', currentUser.id).single();
+
+        if (conv1) activeConversationId = conv1.id;
+        else if (conv2) activeConversationId = conv2.id;
+        else {
+          const { data: newConv } = await supabase.from('conversations').insert([{ user1_id: currentUser.id, user2_id: targetUser.id }]).select().single();
+          activeConversationId = newConv.id;
+        }
+      } else {
+        activeConversationId = existingConvId;
+      }
+
+      loadMessages();
+      subscribeRealtime();
+    }
+
+    function closeChatMobile() {
+      document.getElementById('chatArea').classList.add('hidden');
+    }
+
+    async function loadMessages() {
+      const { data } = await supabase.from('messages')
+        .select('*')
+        .eq('conversation_id', activeConversationId)
+        .order('created_at', { ascending: true });
+
+      const container = document.getElementById('messagesContainer');
+      container.innerHTML = '';
+      if (data) data.forEach(appendMessage);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendMessage(msg) {
+      const container = document.getElementById('messagesContainer');
+      const isMe = msg.sender_id === currentUser.id;
+      const bubble = document.createElement('div');
+      bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+
+      let contentHtml = '';
+      if (msg.media_type === 'image') {
+        contentHtml = `<img src="${msg.media_url}" class="max-w-[240px] max-h-[240px] rounded mb-1 object-cover cursor-pointer" onclick="window.open('${msg.media_url}')">`;
+      } else if (msg.media_type === 'document') {
+        contentHtml = `<a href="${msg.media_url}" target="_blank" class="flex items-center space-x-2 text-xs text-white underline mb-1 bg-black/20 p-2 rounded"><i class="fa-solid fa-file"></i><span>Download Document</span></a>`;
+      }
+
+      if (msg.content) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const textWithLinks = msg.content.replace(urlRegex, url => `<a href="${url}" target="_blank" class="underline text-[#53bdeb]">${url}</a>`);
+        contentHtml += `<p class="text-sm">${textWithLinks}</p>`;
+      }
+
+      const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      bubble.innerHTML = `
+        <div class="max-w-[75%] rounded-lg px-3 py-1.5 shadow ${isMe ? 'bg-[#005c4b] text-[#e9edef]' : 'bg-[#202c33] text-[#e9edef]'}">
+          ${contentHtml}
+          <span class="text-[10px] text-gray-400 block text-right mt-1">${time}</span>
+        </div>
+      `;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text || !activeConversationId) return;
+
+      input.value = '';
+      await supabase.from('messages').insert([{
+        conversation_id: activeConversationId,
+        sender_id: currentUser.id,
+        content: text,
+        media_type: 'text'
+      }]);
+    }
+
+    async function uploadAttachment(input) {
+      if (!input.files || input.files.length === 0 || !activeConversationId) return;
+      const file = input.files[0];
+      const ext = file.name.split('.').pop().toLowerCase();
+      const filePath = `${activeConversationId}/${Date.now()}_${file.name}`;
+
+      const { data, error } = await supabase.storage.from('chat-attachments').upload(filePath, file);
+      if (error) {
+        alert("Upload error: " + error.message);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage.from('chat-attachments').getPublicUrl(filePath);
+      const isImg = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+
+      await supabase.from('messages').insert([{
+        conversation_id: activeConversationId,
+        sender_id: currentUser.id,
+        content: file.name,
+        media_url: publicUrlData.publicUrl,
+        media_type: isImg ? 'image' : 'document'
+      }]);
+      input.value = '';
+    }
+
+    function subscribeRealtime() {
+      if (realtimeSubscription) supabase.removeChannel(realtimeSubscription);
+      realtimeSubscription = supabase.channel('chat_realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+          if (payload.new.conversation_id === activeConversationId) {
+            appendMessage(payload.new);
+          }
+        })
+        .subscribe();
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      window.location.reload();
+    }
+  </script>
+</body>
+  </html>
+  
