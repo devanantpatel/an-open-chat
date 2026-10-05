@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>an-openchat</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-[#111b21] text-[#e9edef] h-screen w-screen overflow-hidden flex font-sans select-none">
@@ -14,7 +14,16 @@
   <script>
     const SUPABASE_URL = "https://clrtbmazkafteaogfhms.supabase.co";
     const SUPABASE_KEY = "sb_publishable_sD3mzd_uXzHjRcMC9EUlkg_xCHxL-BV";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // Initializing with distinct client variable name
+    let sbClient = null;
+    try {
+      if (window.supabase && window.supabase.createClient) {
+        sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      }
+    } catch (e) {
+      console.error("Supabase init error:", e);
+    }
   </script>
 
   <!-- AUTH SCREEN -->
@@ -141,6 +150,13 @@
     let activeConversationId = null;
     let realtimeSubscription = null;
 
+    function getClient() {
+      if (!sbClient && window.supabase && window.supabase.createClient) {
+        sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      }
+      return sbClient;
+    }
+
     function showStatus(text, isError = false) {
       const box = document.getElementById('authStatusBox');
       box.innerText = text;
@@ -157,6 +173,12 @@
     }
 
     async function handleAuth() {
+      const client = getClient();
+      if (!client) {
+        showStatus("Database connection failed. Please reload page.", true);
+        return;
+      }
+
       const usernameInput = document.getElementById('authUsername');
       const passwordInput = document.getElementById('authPassword');
       const btn = document.getElementById('authBtn');
@@ -165,7 +187,6 @@
       const username = usernameInput.value.trim().toLowerCase();
       const password = passwordInput.value;
 
-      // Validation
       if (!username || username.length < 5) {
         showStatus("Username must be at least 5 characters long.", true);
         return;
@@ -183,8 +204,7 @@
 
       try {
         if (isSignup) {
-          // Check username availability in profiles
-          const { data: existingUser } = await supabase.from('profiles').select('username').eq('username', username).single();
+          const { data: existingUser } = await client.from('profiles').select('username').eq('username', username).maybeSingle();
           if (existingUser) {
             showStatus("This username is already taken. Try another.", true);
             btn.disabled = false;
@@ -192,14 +212,14 @@
             return;
           }
 
-          const { data, error } = await supabase.auth.signUp({ email, password });
+          const { data, error } = await client.auth.signUp({ email, password });
           if (error) throw error;
           
-          await supabase.from('profiles').insert([{ id: data.user.id, username }]);
+          await client.from('profiles').insert([{ id: data.user.id, username }]);
           showStatus("Account created! Opening app...", false);
           initUser(data.user, username);
         } else {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          const { data, error } = await client.auth.signInWithPassword({ email, password });
           if (error) throw error;
           
           showStatus("Login successful! Opening...", false);
@@ -222,11 +242,12 @@
     }
 
     async function searchUsers(query) {
-      if (!query.trim()) {
+      const client = getClient();
+      if (!query.trim() || !client) {
         loadConversations();
         return;
       }
-      const { data } = await supabase.from('profiles').select('id, username').ilike('username', `%${query.trim()}%`).neq('id', currentUser.id);
+      const { data } = await client.from('profiles').select('id, username').ilike('username', `%${query.trim()}%`).neq('id', currentUser.id);
       const userList = document.getElementById('userList');
       userList.innerHTML = '';
       if (!data || data.length === 0) {
@@ -246,7 +267,10 @@
     }
 
     async function loadConversations() {
-      const { data } = await supabase.from('conversations')
+      const client = getClient();
+      if (!client) return;
+
+      const { data } = await client.from('conversations')
         .select('id, user1_id, user2_id, updated_at')
         .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
         .order('updated_at', { ascending: false });
@@ -261,7 +285,7 @@
 
       for (const conv of data) {
         const targetId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
-        const { data: targetProfile } = await supabase.from('profiles').select('id, username').eq('id', targetId).single();
+        const { data: targetProfile } = await client.from('profiles').select('id, username').eq('id', targetId).single();
         if (targetProfile) {
           const div = document.createElement('div');
           div.className = "p-3 hover:bg-[#202c33] cursor-pointer flex items-center space-x-3 transition";
@@ -276,19 +300,20 @@
     }
 
     async function startChatWith(targetUser, existingConvId = null) {
+      const client = getClient();
       activeChatUser = targetUser;
       document.getElementById('currentChatUser').innerText = targetUser.username;
       document.getElementById('currentChatAvatar').innerText = targetUser.username[0].toUpperCase();
       document.getElementById('chatArea').classList.remove('hidden');
 
       if (!existingConvId) {
-        const { data: conv1 } = await supabase.from('conversations').select('id').eq('user1_id', currentUser.id).eq('user2_id', targetUser.id).single();
-        const { data: conv2 } = await supabase.from('conversations').select('id').eq('user1_id', targetUser.id).eq('user2_id', currentUser.id).single();
+        const { data: conv1 } = await client.from('conversations').select('id').eq('user1_id', currentUser.id).eq('user2_id', targetUser.id).maybeSingle();
+        const { data: conv2 } = await client.from('conversations').select('id').eq('user1_id', targetUser.id).eq('user2_id', currentUser.id).maybeSingle();
 
         if (conv1) activeConversationId = conv1.id;
         else if (conv2) activeConversationId = conv2.id;
         else {
-          const { data: newConv } = await supabase.from('conversations').insert([{ user1_id: currentUser.id, user2_id: targetUser.id }]).select().single();
+          const { data: newConv } = await client.from('conversations').insert([{ user1_id: currentUser.id, user2_id: targetUser.id }]).select().single();
           activeConversationId = newConv.id;
         }
       } else {
@@ -304,7 +329,10 @@
     }
 
     async function loadMessages() {
-      const { data } = await supabase.from('messages')
+      const client = getClient();
+      if (!client) return;
+
+      const { data } = await client.from('messages')
         .select('*')
         .eq('conversation_id', activeConversationId)
         .order('created_at', { ascending: true });
@@ -347,12 +375,13 @@
     }
 
     async function sendMessage() {
+      const client = getClient();
       const input = document.getElementById('messageInput');
       const text = input.value.trim();
-      if (!text || !activeConversationId) return;
+      if (!text || !activeConversationId || !client) return;
 
       input.value = '';
-      await supabase.from('messages').insert([{
+      await client.from('messages').insert([{
         conversation_id: activeConversationId,
         sender_id: currentUser.id,
         content: text,
@@ -361,21 +390,22 @@
     }
 
     async function uploadAttachment(input) {
-      if (!input.files || input.files.length === 0 || !activeConversationId) return;
+      const client = getClient();
+      if (!input.files || input.files.length === 0 || !activeConversationId || !client) return;
       const file = input.files[0];
       const ext = file.name.split('.').pop().toLowerCase();
       const filePath = `${activeConversationId}/${Date.now()}_${file.name}`;
 
-      const { data, error } = await supabase.storage.from('chat-attachments').upload(filePath, file);
+      const { data, error } = await client.storage.from('chat-attachments').upload(filePath, file);
       if (error) {
         alert("Upload error: " + error.message);
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage.from('chat-attachments').getPublicUrl(filePath);
+      const { data: publicUrlData } = client.storage.from('chat-attachments').getPublicUrl(filePath);
       const isImg = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
 
-      await supabase.from('messages').insert([{
+      await client.from('messages').insert([{
         conversation_id: activeConversationId,
         sender_id: currentUser.id,
         content: file.name,
@@ -386,8 +416,11 @@
     }
 
     function subscribeRealtime() {
-      if (realtimeSubscription) supabase.removeChannel(realtimeSubscription);
-      realtimeSubscription = supabase.channel('chat_realtime')
+      const client = getClient();
+      if (!client) return;
+
+      if (realtimeSubscription) client.removeChannel(realtimeSubscription);
+      realtimeSubscription = client.channel('chat_realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
           if (payload.new.conversation_id === activeConversationId) {
             appendMessage(payload.new);
@@ -397,7 +430,8 @@
     }
 
     async function logout() {
-      await supabase.auth.signOut();
+      const client = getClient();
+      if (client) await client.auth.signOut();
       window.location.reload();
     }
   </script>
