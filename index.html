@@ -53,7 +53,7 @@
     .btn-power:active { color: #f87171; }
     .btn-power svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
-    /* ONLINE USERS ROW */
+    /* ONLINE USERS ROW (Filtered to connected candidates only) */
     .online-strip-container { background: rgba(17, 27, 33, 0.5); padding: 10px 14px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
     .strip-label { font-size: 11px; font-weight: 600; color: #8696a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
     .strip-label .online-count-badge { background: rgba(0,168,132,0.2); color: #00a884; font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: bold; }
@@ -85,7 +85,6 @@
     .item-time { font-size: 11px; color: #8696a0; }
     .item-bottom { display: flex; justify-content: space-between; align-items: center; }
     .item-msg { font-size: 12.5px; color: #8696a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .item-badge { background: #00a884; color: #111b21; font-size: 10px; font-weight: bold; border-radius: 10px; padding: 1px 6px; }
     .list-empty { padding: 30px; text-align: center; color: #8696a0; font-size: 12px; }
 
     /* CHAT CONVERSATION VIEW */
@@ -107,13 +106,13 @@
     .msg-time { font-size: 10px; color: rgba(255,255,255,0.6); text-align: right; margin-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
     .ticks { color: #53bdeb; font-size: 11px; }
 
-    /* INPUT BAR & ATTACHMENT MODAL */
+    /* INPUT BAR */
     .chat-input-bar { background: rgba(32, 44, 51, 0.75); backdrop-filter: blur(14px); padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05); position: relative; }
     .chat-input { flex: 1; background: rgba(42, 57, 66, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 10px 16px; color: #fff; font-size: 13.5px; outline: none; }
     .chat-input::placeholder { color: #8696a0; }
     .btn-send { width: 40px; height: 40px; border-radius: 50%; background: #00a884; border: none; color: #111b21; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; font-weight: bold; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0, 168, 132, 0.35); }
 
-    /* ATTACHMENT POPUP MENU */
+    /* ATTACHMENT POPUP */
     #attachMenu { position: absolute; bottom: 65px; left: 12px; background: rgba(32, 44, 51, 0.92); backdrop-filter: blur(18px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 10px; display: none; flex-direction: column; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 30; min-width: 150px; }
     #attachMenu.open { display: flex; }
     .attach-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; cursor: pointer; color: #e9edef; font-size: 13px; font-weight: 500; }
@@ -123,7 +122,7 @@
     .attach-icon.video { background: #e91e63; color: #fff; }
     .attach-icon.doc { background: #5c6bc0; color: #fff; }
 
-    /* PROFILE MODAL (SETTINGS & EDIT) */
+    /* PROFILE MODAL */
     #profileModal { position: fixed; inset: 0; z-index: 60; background: rgba(10, 16, 20, 0.88); backdrop-filter: blur(14px); display: none; align-items: center; justify-content: center; padding: 16px; }
     #profileModal.active { display: flex; }
     .profile-card { background: rgba(31, 44, 52, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 20px 40px rgba(0,0,0,0.7); max-height: 90vh; overflow-y: auto; position: relative; }
@@ -134,8 +133,7 @@
     .avatar-edit-badge { position: absolute; bottom: 0; right: 0; background: #202c33; border: 1px solid #00a884; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #00a884; }
     
     .profile-status-box { font-size: 12px; text-align: center; padding: 8px 10px; border-radius: 8px; margin-bottom: 12px; display: none; }
-    .btn-danger { width: 100%; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 10px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 14px; transition: background 0.2s; }
-    .btn-danger:active { background: rgba(239, 68, 68, 0.3); }
+    .btn-danger { width: 100%; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 10px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 14px; }
 
     @media (max-width: 768px) {
       #sidebar { max-width: 100%; width: 100%; }
@@ -179,11 +177,8 @@
 
   <!-- MAIN APP CONTAINER -->
   <div id="appScreen">
-    
-    <!-- LEFT SIDEBAR -->
     <div id="sidebar">
-      
-      <!-- TOP HEADER: Left openchat | Center User Profile | Right Power Icon -->
+      <!-- TOP HEADER -->
       <div class="top-header">
         <div class="app-brand">openchat</div>
         
@@ -201,15 +196,13 @@
         </button>
       </div>
 
-      <!-- ONLINE USERS ROW -->
-      <div class="online-strip-container">
+      <!-- ONLINE USERS ROW (Only added / connected candidates) -->
+      <div class="online-strip-container" id="onlineStripContainer" style="display: none;">
         <div class="strip-label">
-          <span>Active Users</span>
+          <span>Active Chats</span>
           <span class="online-count-badge" id="onlineCountBadge">0</span>
         </div>
-        <div class="online-users-row" id="onlineUsersRow">
-          <!-- Populated by JS -->
-        </div>
+        <div class="online-users-row" id="onlineUsersRow"></div>
       </div>
 
       <!-- SEARCH BAR -->
@@ -221,9 +214,7 @@
       </div>
 
       <!-- CHAT LIST -->
-      <div id="userList">
-        <!-- Populated by JS -->
-      </div>
+      <div id="userList"></div>
     </div>
 
     <!-- RIGHT CHAT VIEW -->
@@ -237,15 +228,12 @@
         </div>
       </div>
 
-      <div id="messagesContainer">
-        <!-- Messages rendered by JS -->
-      </div>
+      <div id="messagesContainer"></div>
 
-      <!-- INPUT BAR & ATTACHMENT MENU -->
+      <!-- INPUT BAR -->
       <div class="chat-input-bar">
         <button onclick="toggleAttachMenu()" class="btn-power" style="font-size: 20px;">📎</button>
         
-        <!-- Attachment Popup Menu -->
         <div id="attachMenu">
           <div class="attach-item" onclick="triggerFilePicker('photo')">
             <div class="attach-icon photo">📷</div>
@@ -269,16 +257,14 @@
         <button onclick="sendMessage()" class="btn-send">➤</button>
       </div>
     </div>
-
   </div>
 
-  <!-- PROFILE MODAL (EDIT USERNAME, AVATAR, PASSWORD & DELETE ACCOUNT) -->
+  <!-- PROFILE MODAL -->
   <div id="profileModal">
     <div class="profile-card">
       <button class="modal-close-btn" onclick="closeProfileModal()">✕</button>
       <h3 style="text-align: center; font-size: 17px; font-weight: 700; margin-bottom: 16px; color: #e9edef;">Profile & Settings</h3>
 
-      <!-- Avatar with Upload Trigger -->
       <div class="profile-avatar-large-wrap" onclick="document.getElementById('avatarFileInput').click()" title="Change Profile Picture">
         <div class="profile-avatar-large" id="modalAvatarDisplay">U</div>
         <div class="avatar-edit-badge">📷</div>
@@ -287,21 +273,18 @@
 
       <div id="profileStatusBox" class="profile-status-box"></div>
 
-      <!-- Update Username -->
       <div class="form-group">
         <label>Change Username</label>
         <input id="editUsernameInput" type="text" class="form-input">
       </div>
       <button onclick="updateUsername()" class="btn-primary" style="margin-top: 0; padding: 9px; font-size: 13px;">Save Username</button>
 
-      <!-- Update Password -->
       <div class="form-group" style="margin-top: 14px;">
         <label>Change Password (min 6 chars)</label>
         <input id="editPasswordInput" type="password" placeholder="New Password" class="form-input">
       </div>
       <button onclick="updatePassword()" class="btn-primary" style="margin-top: 0; padding: 9px; font-size: 13px;">Save Password</button>
 
-      <!-- Delete Account -->
       <button onclick="confirmDeleteAccount()" class="btn-danger">Delete My Account</button>
     </div>
   </div>
@@ -324,6 +307,7 @@
     let activeChatUser = null;
     let activeConversationId = null;
     let realtimeSubscription = null;
+    let connectedContacts = [];
 
     function getClient() {
       if (!sbClient && window.supabase && window.supabase.createClient) {
@@ -349,7 +333,7 @@
       box.style.display = 'block';
     }
 
-    // Handle Authentication
+    // Authentication Handlers
     async function handleAuth() {
       const client = getClient();
       if (!client) {
@@ -399,7 +383,7 @@
       }
     }
 
-    // Post Login Init
+    // Post-Login Setup
     async function initUser(user, username, avatarUrl) {
       currentUser = { id: user.id, username, avatar_url: avatarUrl };
       document.getElementById('authScreen').style.display = 'none';
@@ -410,8 +394,7 @@
 
       document.getElementById('editUsernameInput').value = username;
 
-      loadActiveUsers();
-      loadConversations();
+      await loadConversations();
     }
 
     function renderUserAvatar(el, url, name) {
@@ -422,43 +405,42 @@
       }
     }
 
-    // Load Online / Registered Users Row
-    async function loadActiveUsers() {
-      const client = getClient();
-      if (!client || !currentUser) return;
-
-      const { data } = await client.from('profiles').select('id, username, avatar_url').neq('id', currentUser.id).limit(10);
+    // Render Active Row: Sirf aur sirf added/connected candidates
+    function renderConnectedOnlineRow() {
+      const container = document.getElementById('onlineStripContainer');
       const row = document.getElementById('onlineUsersRow');
       const badge = document.getElementById('onlineCountBadge');
       row.innerHTML = "";
 
-      if (!data || data.length === 0) {
-        badge.innerText = "0";
+      if (!connectedContacts || connectedContacts.length === 0) {
+        container.style.display = 'none';
         return;
       }
 
-      badge.innerText = data.length;
-      data.forEach(user => {
+      container.style.display = 'block';
+      badge.innerText = connectedContacts.length;
+
+      connectedContacts.forEach(contact => {
         const item = document.createElement('div');
         item.className = "online-user-item";
-        
-        let avatarInner = user.avatar_url 
-          ? `<img src="${user.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-          : user.username[0].toUpperCase();
+
+        let avatarInner = contact.avatar_url 
+          ? `<img src="${contact.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+          : contact.username[0].toUpperCase();
 
         item.innerHTML = `
           <div class="online-avatar-wrap">
             <div class="online-avatar">${avatarInner}</div>
             <div class="active-badge-dot"></div>
           </div>
-          <span class="online-user-name">${user.username}</span>
+          <span class="online-user-name">${contact.username}</span>
         `;
-        item.onclick = () => startChatWith(user);
+        item.onclick = () => startChatWith(contact, contact.conversation_id);
         row.appendChild(item);
       });
     }
 
-    // Search Users Filter
+    // Search Users: Naye logon ko find karke add karne ke liye
     async function searchUsers(query) {
       const client = getClient();
       if (!query.trim() || !client) {
@@ -468,10 +450,12 @@
       const { data } = await client.from('profiles').select('id, username, avatar_url').ilike('username', `%${query.trim()}%`).neq('id', currentUser.id);
       const userList = document.getElementById('userList');
       userList.innerHTML = '';
+
       if (!data || data.length === 0) {
         userList.innerHTML = '<div class="list-empty">No users found</div>';
         return;
       }
+
       data.forEach(user => {
         const div = document.createElement('div');
         div.className = "list-item";
@@ -485,7 +469,7 @@
       });
     }
 
-    // Load Active Conversation List
+    // Load Conversations & Track Added Candidates
     async function loadConversations() {
       const client = getClient();
       if (!client || !currentUser) return;
@@ -497,9 +481,11 @@
 
       const userList = document.getElementById('userList');
       userList.innerHTML = '';
+      connectedContacts = [];
 
       if (!data || data.length === 0) {
-        userList.innerHTML = '<div class="list-empty">No chats yet. Search user above to start.</div>';
+        userList.innerHTML = '<div class="list-empty">No chats yet. Search username above to add.</div>';
+        renderConnectedOnlineRow();
         return;
       }
 
@@ -507,6 +493,9 @@
         const targetId = conv.user1_id === currentUser.id ? conv.user2_id : conv.user1_id;
         const { data: targetProfile } = await client.from('profiles').select('id, username, avatar_url').eq('id', targetId).single();
         if (targetProfile) {
+          targetProfile.conversation_id = conv.id;
+          connectedContacts.push(targetProfile);
+
           const div = document.createElement('div');
           div.className = `list-item ${activeConversationId === conv.id ? 'active' : ''}`;
           let avatarInner = targetProfile.avatar_url ? `<img src="${targetProfile.avatar_url}">` : targetProfile.username[0].toUpperCase();
@@ -525,9 +514,12 @@
           userList.appendChild(div);
         }
       }
+
+      // Online row me sirf inhi candidates ko update karein
+      renderConnectedOnlineRow();
     }
 
-    // Open/Start Chat With Target User
+    // Start / Open Chat
     async function startChatWith(targetUser, existingConvId = null) {
       const client = getClient();
       activeChatUser = targetUser;
@@ -548,6 +540,7 @@
         else {
           const { data: newConv } = await client.from('conversations').insert([{ user1_id: currentUser.id, user2_id: targetUser.id }]).select().single();
           activeConversationId = newConv.id;
+          await loadConversations();
         }
       } else {
         activeConversationId = existingConvId;
@@ -562,7 +555,7 @@
       closeAttachMenu();
     }
 
-    // Load Chat Messages
+    // Messages Loader
     async function loadMessages() {
       const client = getClient();
       if (!client || !activeConversationId) return;
@@ -582,7 +575,7 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    // Append Message Bubble
+    // Append Message Item
     function appendMessage(msg) {
       const container = document.getElementById('messagesContainer');
       const isMe = msg.sender_id === currentUser.id;
@@ -621,7 +614,7 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    // Send Text Message
+    // Send Message
     async function sendMessage() {
       const client = getClient();
       const input = document.getElementById('messageInput');
@@ -639,7 +632,7 @@
       }]);
     }
 
-    // Attachment Popup Logic
+    // Attachment Menu Toggles
     function toggleAttachMenu() {
       const menu = document.getElementById('attachMenu');
       menu.classList.toggle('open');
@@ -657,14 +650,15 @@
       else if (type === 'document') document.getElementById('filePickerDoc').click();
     }
 
-    // Upload Media to chat-attachments Bucket
+    // Upload Media Attachment
     async function uploadAttachment(input, mediaType) {
       const client = getClient();
       if (!input.files || input.files.length === 0 || !activeConversationId || !client) return;
       const file = input.files[0];
-      const filePath = `chat_media/${activeConversationId}/${Date.now()}_${file.name}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filePath = `chat_media/${activeConversationId}/${Date.now()}_${safeName}`;
 
-      const { error } = await client.storage.from('chat-attachments').upload(filePath, file);
+      const { error } = await client.storage.from('chat-attachments').upload(filePath, file, { upsert: true });
       if (error) {
         alert("Upload error: " + error.message);
         return;
@@ -682,7 +676,7 @@
       input.value = '';
     }
 
-    // Realtime Postgres Changes
+    // Realtime Postgres Sync
     function subscribeRealtime() {
       const client = getClient();
       if (!client) return;
@@ -697,7 +691,7 @@
         .subscribe();
     }
 
-    // PROFILE MODAL FUNCTIONS
+    // Profile Settings Handlers
     function openProfileModal() {
       document.getElementById('profileModal').classList.add('active');
       document.getElementById('profileStatusBox').style.display = 'none';
@@ -714,16 +708,17 @@
       box.style.display = 'block';
     }
 
-    // 1. Profile Photo Change
+    // 1. Profile Picture Upload & Update
     async function handleAvatarUpload(input) {
       const client = getClient();
       if (!input.files || input.files.length === 0 || !client || !currentUser) return;
       const file = input.files[0];
-      const filePath = `avatars/${currentUser.id}_${Date.now()}.${file.name.split('.').pop()}`;
+      const ext = file.name.split('.').pop() || 'jpg';
+      const filePath = `avatars/${currentUser.id}_${Date.now()}.${ext}`;
 
-      showProfileStatus("Uploading new profile photo...", false);
+      showProfileStatus("Uploading profile photo...", false);
 
-      const { error: uploadErr } = await client.storage.from('chat-attachments').upload(filePath, file);
+      const { error: uploadErr } = await client.storage.from('chat-attachments').upload(filePath, file, { upsert: true });
       if (uploadErr) {
         showProfileStatus("Photo upload failed: " + uploadErr.message, true);
         return;
@@ -742,6 +737,7 @@
       renderUserAvatar(document.getElementById('myAvatarText'), newUrl, currentUser.username);
       renderUserAvatar(document.getElementById('modalAvatarDisplay'), newUrl, currentUser.username);
       showProfileStatus("Profile photo updated successfully!", false);
+      loadConversations();
     }
 
     // 2. Update Username
@@ -767,6 +763,7 @@
       currentUser.username = newU;
       document.getElementById('myUsernameDisplay').innerText = newU;
       showProfileStatus("Username updated successfully!", false);
+      loadConversations();
     }
 
     // 3. Update Password
@@ -791,11 +788,11 @@
 
     // 4. Delete Account
     async function confirmDeleteAccount() {
-      const confirmAction = confirm("Are you sure you want to permanently delete your account? This cannot be undone.");
+      const confirmAction = confirm("Are you sure you want to permanently delete your account?");
       if (!confirmAction) return;
 
       const client = getClient();
-      showProfileStatus("Deleting your profile...", true);
+      showProfileStatus("Deleting account...", true);
 
       await client.from('profiles').delete().eq('id', currentUser.id);
       await client.auth.signOut();
@@ -803,7 +800,7 @@
       window.location.reload();
     }
 
-    // Logout Action
+    // Logout
     async function logout() {
       const client = getClient();
       if (client) await client.auth.signOut();
